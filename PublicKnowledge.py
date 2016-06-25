@@ -18,7 +18,7 @@ class UniformDisttribution:
 """
 PublicKnowledge = [UniformDisttribution(0, 2)] + [UniformDisttribution(0, 1) for i in range(1, N)]
 
-it's interesting
+it's interesting for second price auction
 """
 #PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]
 
