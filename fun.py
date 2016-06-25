@@ -94,7 +94,7 @@ class Policy:
 
     def loads(self, params):
         for a, b in zip(self.params, params):
-            a.set_vale(b) 
+            a.set_value(b) 
 
 class Player:
     def __init__(self, idx):

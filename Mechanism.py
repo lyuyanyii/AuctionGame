@@ -1,4 +1,5 @@
 import theano
+import numpy as np
 from theano import tensor as T
 from fun import Player, GameMaster
 from PublicKnowledge import PublicKnowledge
@@ -7,7 +8,7 @@ class MechanismLeaner:
     def __init__(self, player_num):
         self.params = []
         self.nonlinearity = lambda x: T.tanh(x)
-        self.num_layers = 3
+        self.num_layers = 0
         self.sigma = 0.01
         self.player_num = player_num
         self.trainable = True
@@ -18,7 +19,7 @@ class MechanismLeaner:
         #price of each person
         inp = T.matrix('inp', dtype = 'float32')
         reward = T.vector('reward', dtype = 'float32')
-        var = T.vector('var', dtype = 'float32')
+        var = T.matrix('var', dtype = 'float32')
         fake_value = {
             inp: np.zeros(shape = (10,self.player_num)).astype(np.float32), 
             reward:np.zeros(shape =(10,)).astype(np.float32),
@@ -41,7 +42,7 @@ class MechanismLeaner:
 
         #forward used for inference
         x = inp
-        last = self.num_layers
+        last = self.player_num
         for i in range(self.player_num):
             x = add_fc(x, last, 10, self.nonlinearity)
             last = 10
@@ -62,9 +63,9 @@ class MechanismLeaner:
             prob = 1/(sigma * np.pi**0.5) * T.exp(-(var - mean)**2/(2 * sigma**2))
             return prob
 
-        prob1 = bider[T.arange(var.shape[0]), var[:, 0]]
-        prob2 = calc_prob(gaussian, var[:, 1])
-        loss = -T.mean( (T.log(prob1) + T.log(prob2)) * (reward- reward.mean()) )
+        prob1 = bider[T.arange(var.shape[0]), var[:, 0].astype('int64')]
+        prob2 = calc_prob(price, var[:, 1])
+        loss = -T.mean( (T.log(prob1) + T.log(prob2)) * (reward-reward.mean()))
 
         updates = []
         for i in self.params:
@@ -78,7 +79,7 @@ class MechanismLeaner:
         self.last_action = action
         predict = self.forward(action)
 
-        bider_ = predict[:, 0]
+        bider_ = predict[:, :-1]
         def sampling(p):
             b = np.random.random()
             for i, a in enumerate(p):
@@ -89,7 +90,7 @@ class MechanismLeaner:
         bider = [sampling(i) for i in bider_]
 
         mean = predict[:, 1]
-        sigma = self.sima
+        sigma = self.sigma
         price = (np.random.normal(size = mean.shape) * sigma + mean).astype('float32')
         return [{'bider': a, 'price': b} for a, b in zip(bider, price)]
 
@@ -107,21 +108,21 @@ class MechanismTrainer:
         self.mechanism = MechanismLeaner(n)
 
     def store_params(self):
-        self.store_params = [ i.dump() for i in self.players]
+        self.stored_params = [ i.policy.dump() for i in self.players]
 
     def reset_params(self):
-        for a, b in zip(self.players, self.store_params):
-            a.loads(b)
+        for a, b in zip(self.players, self.stored_params):
+            a.policy.loads(b)
 
     def run(self, batchsize = 100, record = True):
-        valuation = [i.sample_valuation(batchsize) for i in self.players]
+        valuation = np.array([i.sample_valuation(batchsize) for i in self.players])
         action = np.array( [i.play(j) for i, j in zip(self.players, valuation)] ).transpose(1, 0)
         result = self.mechanism.decide(action)
         if record:
             prices = [[i['price']] for i in result]
             biders = [[i['bider']] for i in result]
             var = np.concatenate([biders, prices], axis = 1)
-            self.history.append([actions, var])
+            self.history.append([action, var])
 
         reward = [i.inform(result) for i in self.players] #train the policy of each player
         diff = np.abs(valuation.reshape(-1) - action.reshape(-1)).mean()
@@ -136,7 +137,7 @@ class MechanismTrainer:
         self.reset_params()
         actions = np.concatenate( [i[0] for i in self.history], axis = 0 )
         var = np.concatenate( [i[1] for i in self.history], axis = 0 )
-        return actions, var, np.zeros(shape = (actions.shape[0],)) + diff
+        return actions, var, np.zeros(shape = (actions.shape[0],)) - diff
 
     def get_batches(self):
         inps = [[], [], []]
@@ -144,22 +145,25 @@ class MechanismTrainer:
             data = self.get_data()
             for j in range(len(inps)):
                 inps[j].append(data[j])
-        return inps
 
-    def one_epoch(self):
-        inps = get_batches()
-        self.mechanism.training(*inps)
+        ans = [np.concatenate(i, axis = 0).astype(np.float32) for i in inps]
+        return ans
 
-        for i in range(10):
+    def descent(self):
+        inps = self.get_batches()
+        loss = self.mechanism.training(*inps)
+
+        for i in range(1):
             diff = self.run(1000, record = False)
 
         return diff
 
 def main():
+    np.random.seed(0)
     trainer = MechanismTrainer()
-    while True:
-        diff = trainer.one_epoch()
-        print(diff)
+    for batch_num in range(10000):
+        diff = trainer.descent()
+        print('batch: {}, reward: {}'.format(batch_num, diff))
 
 if __name__ == '__main__':
     main()
