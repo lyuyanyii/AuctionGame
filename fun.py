@@ -131,7 +131,6 @@ class Player:
             loss = self.policy.learning(reward)
             if self.idx==0:
                 diff = np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1)).mean()
-                print(diff)
         return reward
 
 class FakePlayer(Player):

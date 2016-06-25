@@ -78,6 +78,8 @@ class MechanismLeaner:
     def decide(self, action):
         self.last_action = action
         predict = self.forward(action)
+iasjfisjiof
+什么啊，我这不是忘了排序了么
 
         bider_ = predict[:, :-1]
         def sampling(p):
