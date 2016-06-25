@@ -13,6 +13,6 @@ class UniformDisttribution:
         self.r = r
     
     def sample(self):
-        return np.random.random() * (r-l) + l
+        return np.random.random() * (self.r - self.l) + self.l
 
 PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]

@@ -2,6 +2,7 @@ import theano
 from theano import tensor as T
 import numpy as np
 from PublicKnowledge import PublicKnowledge
+np.random.seed(0)
 
 class Policy:
     def __init__(self):
@@ -61,7 +62,9 @@ class Policy:
         self.backward = theano.function(inputs = [inp, reward, var], outputs = loss, updates = updates)
         return
 
-    def action(inp):
+    def action(self, inp):
+        inp = np.array(inp)
+        inp = inp.reshape(inp.shape[0], -1).astype(np.float32)
         gaussian = self.forward(inp)
         mean = gaussian[:, 0]
         sigma = np.exp( gaussian[:, 0] )
@@ -82,7 +85,7 @@ class Player:
         self.trainable = True
 
     def sample_valuation(self, num):
-        valuation = [ [PublicKnowledge[idx].sample()] for i in num]
+        valuation = [ [PublicKnowledge[self.idx].sample()] for i in range(num)]
         self.valuation = valuation
         return valuation
 
@@ -95,11 +98,11 @@ class Player:
     def set_freeze(self):
         self.set_trainable(False)
 
-    def player(self, valuation):
+    def play(self, valuation):
         return self.policy.action(valuation)
 
     def utility(self, valuation, result):
-        if result['bidder'] = self.idx:
+        if result['bidder'] == self.idx:
             return valuation - result['price']
         else:
             return 0
@@ -115,25 +118,36 @@ class Mechanism:
     Now only consider second price auction
     """
     def __init__(self):
+        pass
 
     def decide(self, actions):
-        t = np.argsort(action)
-        return {
-            'bider': t[0],
-            'price': t[1]
-        }
+        for batches in range(len(actions)):
+            if len(actions) == 1:
+                result = {
+                    'bider': 0,
+                    'price': actions[0]
+                }
+            else:
+                t = np.argsort(actions)
+                result = {
+                    'bider': t[0],
+                    'price': actions[t[1]]
+                }
 
 class GameMaster:
     def __init__(self, players):
-        self.Mechanism = Mechanism()
+        self.mechanism = Mechanism()
         self.players = players
 
     def run(self, batchsize = 1):
         valuation = [i.sample_valuation(batchsize) for i in players]
-        action = [i.action(j) for i, j in zip(players, valuation)]
-        result = Mechanism.decide(action)
+        action = np.array( [i.play(j) for i, j in zip(players, valuation)] ).transpose(1, 0)
+        result = self.mechanism.decide(action)
         reward = [i.inform(result) for i in players]
         return reward
 
 if __name__ == '__main__':
-    a = Policy()
+    n = len(PublicKnowledge)
+    players = [Player(i) for i in range(n)]
+    gm = GameMaster(players)
+    gm.run(10)
