@@ -119,7 +119,11 @@ class Player:
         reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
             loss = self.policy.learning(reward)
-            print(np.mean(reward), self.valuation[0], self.policy.last_var[0], loss)
+            """
+            for printing the result
+            if self.idx == 0:
+                print(np.mean(reward), self.valuation[0], self.policy.last_var[0], loss)
+                """
         return reward
 
 class FakePlayer(Player):
@@ -144,7 +148,7 @@ class Mechanism:
             t = np.argsort(-acts)
             results.append(  {
                 'bider': t[0],
-                'price': acts[t[1]]
+                'price': acts[t[0]]
             } )
         return results
 
