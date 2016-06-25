@@ -89,6 +89,13 @@ class Policy:
         assert self.last_var.shape == reward.shape
         return self.backward(self.last_inp, self.last_var, reward)
 
+    def dump(self):
+        return [np.array(i.get_value()) for i in self.params]
+
+    def loads(self, params):
+        for a, b in zip(self.params, params):
+            a.set_vale(b) 
+
 class Player:
     def __init__(self, idx):
         self.idx = idx
@@ -122,14 +129,6 @@ class Player:
         reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
             loss = self.policy.learning(reward)
-            if self.idx == 0:
-                diff = (np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1))).mean()
-                print(diff, loss)
-            """
-            for printing the result
-            if self.idx == 0:
-                print(np.mean(reward), self.valuation[0], self.policy.last_var[0], loss)
-                """
         return reward
 
 class FakePlayer(Player):
@@ -156,6 +155,9 @@ class Mechanism:
                 'price': acts[t[0]]
             } )
         return results
+
+    def inform(self, reward):
+        return
 
 class GameMaster:
     def __init__(self, players):
