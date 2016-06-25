@@ -6,9 +6,9 @@ from PublicKnowledge import PublicKnowledge
 class Policy:
     def __init__(self):
         self.params = []
-        self.nonlinearity = lambda x:T.tanh(x)
-        self.num_layers = 2
-        self.sigma = 0.01
+        self.nonlinearity = lambda x: T.tanh(x)#lambda x:x*(x>0)
+        self.num_layers = 3
+        self.sigma = 0.1
         self.build_network()
 
     def build_network(self):
@@ -27,7 +27,7 @@ class Policy:
 
         def add_fc(x, inp, out, nonlinearity = lambda x:x, initW = None, initb = None):
             if initW is None:
-                initW = np.random.normal(size = (inp,out))
+                initW = np.random.normal(size = (inp, out)) * 1./inp**0.5
             if initb is None:
                 initb = np.zeros(shape = (out,))
             W = theano.shared(initW.astype('float32'))
@@ -49,9 +49,11 @@ class Policy:
 
         #forward used for inference
         x = inp
+        last = 1
         for i in range(self.num_layers):
-            x = add_fc(x, 1, 1, self.nonlinearity)
-        gaussian = add_fc(x, 1, 2)
+            x = add_fc(x, last, 1, self.nonlinearity)
+            last = 1
+        gaussian = add_fc(x, last, 2)
 
         self.forward = theano.function(inputs = [inp], outputs = gaussian)
 
@@ -61,9 +63,10 @@ class Policy:
         updates = []
         for i in self.params:
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.01)))
+            updates.append((i, i-grad_i*np.float32(0.001)))
 
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
+        print('finish network building')
         return
 
     def action(self, inp):
@@ -119,6 +122,9 @@ class Player:
         reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
             loss = self.policy.learning(reward)
+            if self.idx == 0:
+                diff = (np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1))).mean()
+                print(diff, loss)
             """
             for printing the result
             if self.idx == 0:
@@ -128,9 +134,8 @@ class Player:
 
 class FakePlayer(Player):
     def __init__(self, idx):
-        super().__init__(idx)
-        self.set_freeze()
-
+        self.idx = idx
+        self.set_freeze() 
     def play(self, valuation):
         return valuation[:, 0]
 
@@ -169,18 +174,18 @@ def OneAgent():
     n = len(PublicKnowledge)
     players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
     gm = GameMaster(players)
-    for i in range(1000):
+    for i in range(10000):
         gm.run(1000)
-#        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
+        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
 
 def MultiAgent():
     np.random.seed(0)
     n = len(PublicKnowledge)
     players = [Player(i) for i in range(0, n)]
     gm = GameMaster(players)
-    for i in range(1000):
+    for i in range(10000):
         gm.run(1000)
 #        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
 
 if __name__ == '__main__':
-    OneAgent()
+    MultiAgent()

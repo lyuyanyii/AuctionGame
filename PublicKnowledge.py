@@ -5,7 +5,7 @@ base of the game
 """
 import numpy as np
 
-N = 3
+N = 10
 
 class UniformDisttribution:
     def __init__(self, l, r):

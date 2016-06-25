@@ -2,7 +2,7 @@ import theano
 from theano import tensor as T
 
 class MechanismLeaner:
-    def __init__(self):
+    def __init__(self, player_num):
         self.params = []
         self.nonlinearity = lambda x: T.tanh(x)
         self.num_layers = 3
