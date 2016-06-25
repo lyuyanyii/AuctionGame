@@ -1,0 +1,138 @@
+\documentclass{article}
+\usepackage{overcite}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{subfigure}
+\usepackage{listings} 
+\usepackage{bm}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{amsmath,amsfonts,amsthm,amssymb}
+\usepackage{fancyhdr}
+\usepackage{multirow}
+\usepackage{extramarks}
+\usepackage{chngpage}
+\usepackage{color}
+\usepackage{graphicx,float}
+\usepackage{indentfirst}
+\usepackage{bibentry}
+\theoremstyle{plain} \newtheorem{theorem}{常识}[section]
+\theoremstyle{plain} \newtheorem{lizi}{例}[section]
+\newcommand{\Class}{Mathematics for Computer Science}
+
+% Homework Specific Information. Change it to your own
+\newcommand{\Title}{Homework 3}
+\newcommand{\StudentName}{Huang Zhiao}
+\newcommand{\StudentClass}{JK 40}
+\newcommand{\StudentNumber}{2014011345}
+
+% In case you need to adjust margins:
+\topmargin=-0.45in      %
+\evensidemargin=0in     %
+\oddsidemargin=0in      %
+\textwidth=6.5in        %
+\textheight=9.0in       %
+\headsep=0.25in         %
+
+% Setup the header and footer
+%\pagestyle{fancy}                                                       %
+\lhead{\StudentName}                                                    %
+\chead{\Title}                                                          %
+\rhead{\firstxmark}                                                     %
+\lfoot{\lastxmark}                                                      %
+\cfoot{}                                                                %
+\rfoot{Page\ \thepage\ of\ \protect\pageref{LastPage}}                  %
+\renewcommand\headrulewidth{0.4pt}                                      %
+\renewcommand\footrulewidth{0.4pt}                                      %
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Some tools
+\newcommand{\enterProblemHeader}[1]{\nobreak\extramarks{#1}{#1 continued on next page\ldots}\nobreak%
+                                    \nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak}%
+\newcommand{\exitProblemHeader}[1]{\nobreak\extramarks{#1 (continued)}{#1 continued on next page\ldots}\nobreak%
+                                   \nobreak\extramarks{#1}{}\nobreak}%
+
+\newcommand{\homeworkProblemName}{}%
+\newcounter{homeworkProblemCounter}%
+\newenvironment{homeworkProblem}[1][Problem \arabic{homeworkProblemCounter}]%
+  {\stepcounter{homeworkProblemCounter}%
+   \renewcommand{\homeworkProblemName}{#1}%
+   \section*{\homeworkProblemName}%
+   \enterProblemHeader{\homeworkProblemName}}%
+  {\exitProblemHeader{\homeworkProblemName}}%
+
+\newcommand{\homeworkSectionName}{}%
+\newlength{\homeworkSectionLabelLength}{}%
+\newenvironment{homeworkSection}[1]%
+  {% We put this space here to make sure we're not connected to the above.
+
+   \renewcommand{\homeworkSectionName}{#1}%
+   \settowidth{\homeworkSectionLabelLength}{\homeworkSectionName}%
+   \addtolength{\homeworkSectionLabelLength}{0.25in}%
+   \changetext{}{-\homeworkSectionLabelLength}{}{}{}%
+   \subsection*{\homeworkSectionName}%
+   \enterProblemHeader{\homeworkProblemName\ [\homeworkSectionName]}}%
+  {\enterProblemHeader{\homeworkProblemName}%
+
+   % We put the blank space above in order to make sure this margin
+   % change doesn't happen too soon.
+   \changetext{}{+\homeworkSectionLabelLength}{}{}{}}%
+
+\newcommand{\Answer}{\ \\\textbf{Answer:} }
+\newcommand{\Proof}{\ \\\textbf{Proof:} }
+\newcommand{\Acknowledgements}[1]{\ \\{\bf Acknowledgements:} #1}
+\newcommand{\Infer}{\Longrightarrow}
+\newcommand{\ud}{\mathrm{d}}
+\newcommand{\Reduce}{\Longleftarrow}
+\newcommand{\Endproof}{\hfill $\Box$ \\}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{\node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Make title
+\title{\textmd{\bf \Class: \Title}\\\normalsize\vspace{0.1in}}
+%\date{} % --- if you de-comment \date{}, the date will not appear below the title
+\author{\textbf{\StudentName}\ \ \StudentNumber}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage[colorlinks,linkcolor=red]{hyperref}
+
+
+\usepackage[]{xeCJK}
+%\setmainfont{Courier New} % 设置英文衬线字体
+%\setCJKmainfont{} % 设置缺省中文字体
+
+
+\begin{document}
+
+\title{On the learning of mechanism desgin}
+\author{计科40~~黄志翱~~2014011345}
+\maketitle
+
+\section{Intorduction}
+Mechanism desgin is an insteresting topic in game theory which aims at designing a game instead of playing it.
+
+Learning is another fundamental field in computer science. It stands for the hope of strong artificial intelligence and has become a powerfull technic everywhere for everything.
+
+Using the agents with AI to play games is a very old idea. Nowadays, AI can be found in video games, chess and many other games. Recently learning algorithms have shown their power in general games and outperform human beings in Go. Then it's nature to ask whether machine can be a game designer?
+
+In this paper we answer the question partially by showing that it's possible to learn mechanisms in game.
+
+\section{Auction}
+Consider auction.
+
+There are $n$ participants and one item. Each participant has a valuation of the item.
+
+The common knowledge held by the participants contains two parts:
+
+\begin{itemize}
+    \item Distributions of each participant's valuation.
+    \item The mechanism of the game.
+\end{itemize}
+
+Thus once the mechanism has been set up, the aim of the game
+
+\end{document}
