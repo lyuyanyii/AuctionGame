@@ -7,7 +7,7 @@ class Policy:
     def __init__(self):
         self.params = []
         self.nonlinearity = lambda x:T.tanh(x)
-        self.num_layers = 0
+        self.num_layers = 2
         self.sigma = 0.01
         self.build_network()
 
@@ -166,7 +166,7 @@ def OneAgent():
     players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
     gm = GameMaster(players)
     for i in range(1000):
-        gm.run(100)
+        gm.run(1000)
 #        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
 
 if __name__ == '__main__':

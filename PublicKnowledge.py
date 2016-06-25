@@ -15,4 +15,10 @@ class UniformDisttribution:
     def sample(self):
         return np.random.random() * (self.r - self.l) + self.l
 
-PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]
+"""
+PublicKnowledge = [UniformDisttribution(0, 2)] + [UniformDisttribution(0, 1) for i in range(1, N)]
+
+it's interesting
+"""
+#PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]
+
