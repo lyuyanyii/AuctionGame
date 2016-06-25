@@ -20,5 +20,4 @@ PublicKnowledge = [UniformDisttribution(0, 2)] + [UniformDisttribution(0, 1) for
 
 it's interesting for second price auction
 """
-#PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]
-
+PublicKnowledge = [UniformDisttribution(0, 1) for i in range(N)]
