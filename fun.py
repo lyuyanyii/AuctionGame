@@ -2,7 +2,6 @@ import theano
 from theano import tensor as T
 import numpy as np
 from PublicKnowledge import PublicKnowledge
-np.random.seed(0)
 
 class Policy:
     def __init__(self):
@@ -26,9 +25,11 @@ class Policy:
         def given(*inp):
             return {i: fake_value[i] for i in inp}
 
-        def add_fc(x, inp, out, nonlinearity = lambda x:x):
-            initW = np.random.normal(size = (inp,out))
-            initb = np.zeros(shape = (out,))
+        def add_fc(x, inp, out, nonlinearity = lambda x:x, initW = None, initb = None):
+            if initW is None:
+                initW = np.random.normal(size = (inp,out))
+            if initb is None:
+                initb = np.zeros(shape = (out,))
             W = theano.shared(initW.astype('float32'))
             b = theano.shared(initb.astype('float32'))
             self.params += [W, b]
@@ -57,9 +58,9 @@ class Policy:
         updates = []
         for i in self.params:
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.1)))
+            updates.append((i, i-grad_i*np.float32(0.01)))
 
-        self.backward = theano.function(inputs = [inp, reward, var], outputs = loss, updates = updates)
+        self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         return
 
     def action(self, inp):
@@ -68,15 +69,16 @@ class Policy:
         gaussian = self.forward(inp)
         mean = gaussian[:, 0]
         sigma = np.exp( gaussian[:, 0] )
-        sampled_var = np.random.normal(size = mean.shape) * sigma + mean
+        sampled_var = (np.random.normal(size = mean.shape) * sigma + mean).astype('float32')
 
         self.last_inp = inp
         self.last_var = sampled_var
         return sampled_var
 
-    def learning(reward):
+    def learning(self, reward):
+        reward = np.array(reward, dtype = 'float32')
         assert self.last_var.shape == reward.shape
-        return self.backward(self.last_inp, self.sampled_var)
+        return self.backward(self.last_inp, self.last_var, reward)
 
 class Player:
     def __init__(self, idx):
@@ -85,7 +87,7 @@ class Player:
         self.trainable = True
 
     def sample_valuation(self, num):
-        valuation = [ [PublicKnowledge[self.idx].sample()] for i in range(num)]
+        valuation = np.array([ [PublicKnowledge[self.idx].sample()] for i in range(num)])
         self.valuation = valuation
         return valuation
 
@@ -102,16 +104,24 @@ class Player:
         return self.policy.action(valuation)
 
     def utility(self, valuation, result):
-        if result['bidder'] == self.idx:
+        if result['bider'] == self.idx:
             return valuation - result['price']
         else:
             return 0
 
     def inform(self, message):
-        reward = map(self.utility, zip(self.valuation, message))
+        reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
             self.policy.learning(reward)
         return reward
+
+class FakePlayer(Player):
+    def __init__(self, idx):
+        super().__init__(idx)
+        self.set_freeze()
+
+    def play(self, valuation):
+        return valuation[:, 0]
 
 class Mechanism:
     """
@@ -121,18 +131,15 @@ class Mechanism:
         pass
 
     def decide(self, actions):
-        for batches in range(len(actions)):
-            if len(actions) == 1:
-                result = {
-                    'bider': 0,
-                    'price': actions[0]
-                }
-            else:
-                t = np.argsort(actions)
-                result = {
-                    'bider': t[0],
-                    'price': actions[t[1]]
-                }
+        results = []
+        for batches, acts in enumerate(actions):
+            assert len(acts)!=1
+            t = np.argsort(acts)
+            results.append(  {
+                'bider': t[0],
+                'price': acts[t[1]]
+            } )
+        return results
 
 class GameMaster:
     def __init__(self, players):
@@ -140,14 +147,20 @@ class GameMaster:
         self.players = players
 
     def run(self, batchsize = 1):
-        valuation = [i.sample_valuation(batchsize) for i in players]
-        action = np.array( [i.play(j) for i, j in zip(players, valuation)] ).transpose(1, 0)
+        valuation = [i.sample_valuation(batchsize) for i in self.players]
+        action = np.array( [i.play(j) for i, j in zip(self.players, valuation)] ).transpose(1, 0)
         result = self.mechanism.decide(action)
-        reward = [i.inform(result) for i in players]
+        reward = [i.inform(result) for i in self.players]
         return reward
 
-if __name__ == '__main__':
+def OneAgent():
+    np.random.seed(0)
     n = len(PublicKnowledge)
-    players = [Player(i) for i in range(n)]
+    players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
     gm = GameMaster(players)
-    gm.run(10)
+    for i in range(10):
+        gm.run(100)
+        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
+
+if __name__ == '__main__':
+    OneAgent()
