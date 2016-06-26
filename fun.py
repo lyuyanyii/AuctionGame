@@ -129,8 +129,8 @@ class Player:
         reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
             loss = self.policy.learning(reward)
-            if self.idx==0:
-                diff = np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1)).mean()
+            diff = np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1)).mean()
+            print(self.idx, diff)
         return reward
 
 class FakePlayer(Player):
@@ -153,8 +153,8 @@ class Mechanism:
             assert len(acts)!=1
             t = np.argsort(-acts)
             results.append(  {
-                'bider': np.random.randint(3),#t[0],
-                'price': np.random.random()#acts[t[0]]
+                'bider': t[0],
+                'price': acts[t[1]]
             } )
         return results
 
@@ -187,7 +187,7 @@ def MultiAgent():
     n = len(PublicKnowledge)
     players = [Player(i) for i in range(0, n)]
     gm = GameMaster(players)
-    for i in range(10000):
+    for i in range(100000):
         gm.run(1000)
 #        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
 

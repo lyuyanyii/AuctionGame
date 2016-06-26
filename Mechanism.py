@@ -29,29 +29,30 @@ class MechanismLeaner:
         def given(*inp):
             return {i: fake_value[i] for i in inp}
 
-        def add_fc(x, inp, out, nonlinearity = lambda x:x, initW = None, initb = None):
+        def add_fc(x, inp_num, out_num, nonlinearity = lambda x:x, initW = None, initb = None):
             if initW is None:
-                initW = np.random.normal(size = (inp, out)) * 1./inp**0.5
+                initW = np.random.normal(size = (inp_num, out_num)) * 1./inp_num**0.5
             if initb is None:
-                initb = np.zeros(shape = (out,))
+                assert 0
+                initb = np.zeros(shape = (out_num,))
             W = theano.shared(initW.astype('float32'))
             b = theano.shared(initb.astype('float32'))
             self.params += [W, b]
-            x = T.dot(x, W) + b
+            x = T.dot(x, W) + b.dimshuffle('x', 0)
             return nonlinearity(x)
 
         #forward used for inference
         x = inp
         last = self.player_num
-        for i in range(self.player_num):
+        for i in range(self.num_layers):
             x = add_fc(x, last, 10, self.nonlinearity)
             last = 10
 
-        predict = add_fc(x, last, self.player_num + 1)
+#        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
+        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
         bider = T.nnet.softmax( predict[:, :self.player_num] )
-
-        price = predict[:, self.player_num:]
-        self.forward = theano.function(inputs = [inp], outputs = predict)
+        price =predict[:, self.player_num:]
+        self.forward = theano.function(inputs = [inp], outputs = T.concatenate([bider, price], axis = 1))
 
         def calc_prob(gaussian, var):
             mean = gaussian[:, 0]
@@ -75,11 +76,19 @@ class MechanismLeaner:
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         return
 
+    def handle(self, action):
+        labels = []
+        sorted_action = []
+        for i in action:
+            labels.append(np.argsort(-i))
+            sorted_action.append(np.sort(-i))
+        return labels, sorted_action
+
     def decide(self, action):
         self.last_action = action
-        predict = self.forward(action)
-iasjfisjiof
-什么啊，我这不是忘了排序了么
+
+        labels, sorted_action = self.handle(action)
+        predict = self.forward(sorted_action)
 
         bider_ = predict[:, :-1]
         def sampling(p):
@@ -91,13 +100,17 @@ iasjfisjiof
             return i
         bider = [sampling(i) for i in bider_]
 
-        mean = predict[:, 1]
+        mean = predict[:, -1]
         sigma = self.sigma
         price = (np.random.normal(size = mean.shape) * sigma + mean).astype('float32')
-        return [{'bider': a, 'price': b} for a, b in zip(bider, price)]
+        result =  [{'bider': label[a], 'price': b} for a, b, label in zip(bider, price, labels)]
+        return result
 
     def training(self, action, var, reward):
-        return self.backward(action, var, reward)
+        pass
+        labels, sorted_action = self.handle(action)
+        var[:,0] = [list(a).index(b) for a, b in zip(labels, var[:,0])]
+        return self.backward(sorted_action, var, reward)
 
 class MechanismTrainer:
     def __init__(self):
