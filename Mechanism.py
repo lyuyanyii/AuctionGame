@@ -50,13 +50,13 @@ class MechanismLeaner:
             x = add_fc(x, last, 10, self.nonlinearity)
             last = 10
 
-#        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
+        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
 #        predict = add_fc(x, last, self.player_num + 1, 
 #                         initW=np.array([[0,0,0,0], [0,0,0,1],[0,0,0,0]]),
 #                         initb = np.array([10,0,0,0]))
-        predict = add_fc(x, last, self.player_num + 1, 
-                         initW=np.array([[0,0,0,1], [0,0,0,0],[0,0,0,0]]),
-                         initb = np.array([10,0,0,0]))
+#        predict = add_fc(x, last, self.player_num + 1, 
+#                         initW=np.array([[0,0,0,1], [0,0,0,0],[0,0,0,0]]),
+#                         initb = np.array([10,0,0,0]))
         bider = T.nnet.softmax( predict[:, :self.player_num] )
         price =predict[:, self.player_num:]
         self.forward = theano.function(inputs = [inp], outputs = T.concatenate([bider, price], axis = 1))
