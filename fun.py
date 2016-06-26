@@ -63,7 +63,7 @@ class Policy:
         updates = []
         for i in self.params:
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.01)))
+            updates.append((i, i-grad_i*np.float32(0.001)))
 
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         print('finish network building')
@@ -128,9 +128,10 @@ class Player:
     def inform(self, message):
         reward = list( map(lambda a: self.utility(*a), zip(self.valuation.reshape(-1), message)) )
         if self.trainable:
-            loss = self.policy.learning(reward)
+            for i in range(100):
+                loss = self.policy.learning(reward)
             diff = np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1)).mean()
-            #print(self.idx, diff)
+        #    print(self.idx, diff)
         return reward
 
 class FakePlayer(Player):
@@ -161,7 +162,7 @@ class Mechanism:
             t = np.argsort(-acts)
             results.append(  {
                 'bider': t[0],
-                'price': acts[t[1]]
+                'price': acts[t[0]]
             } )
         return results
 
@@ -199,4 +200,4 @@ def MultiAgent():
 #        print(players[0].policy.last_inp[0], players[0].policy.last_var[0])
 
 if __name__ == '__main__':
-    MultiAgent()
+    OneAgent()

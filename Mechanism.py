@@ -8,9 +8,10 @@ from PublicKnowledge import PublicKnowledge
 class MechanismLeaner:
     def __init__(self, player_num):
         self.params = []
+        self.momentum = []
         self.nonlinearity = lambda x: T.tanh(x)
         self.num_layers = 0
-        self.sigma = 0.01
+        self.sigma = 0.1
         self.player_num = player_num
         self.trainable = True
         self.build_network()
@@ -50,6 +51,9 @@ class MechanismLeaner:
             last = 10
 
 #        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
+#        predict = add_fc(x, last, self.player_num + 1, 
+#                         initW=np.array([[0,0,0,0], [0,0,0,1],[0,0,0,0]]),
+#                         initb = np.array([10,0,0,0]))
         predict = add_fc(x, last, self.player_num + 1, 
                          initW=np.array([[0,0,0,1], [0,0,0,0],[0,0,0,0]]),
                          initb = np.array([10,0,0,0]))
@@ -72,9 +76,13 @@ class MechanismLeaner:
         loss = -T.mean( (T.log(prob1) + T.log(prob2)) * (reward-reward.mean()))
 
         updates = []
-        for i in self.params:
+        self.momentum = [theano.shared(i.get_value()*0).astype('float32') for i in self.params]
+        for i, j in zip(self.params, self.momentum):
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.001)))
+            a = np.float32(0.9)
+            b = np.float32(0.1)
+            updates.append((i, i-(j*a+grad_i*b)*np.float32(0.1)))
+            updates.append((j, j*a + grad_i *b))
 
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         return
@@ -122,8 +130,9 @@ class MechanismTrainer:
         self.history = []
 
         n = len(PublicKnowledge)
-        self.players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
-        self.batchsize = 10
+#        self.players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
+        self.players = [Player(i) for i in range(0, n)]
+        self.batchsize = 30
         self.mechanism = MechanismLeaner(n)
 
     def store_params(self):
@@ -151,17 +160,17 @@ class MechanismTrainer:
     def get_data(self):
         self.store_params()
         self.history = []
-        for i in range(100):
-            diff = self.run(100)
+        for i in range(20):
+            diff = self.run(10)
         self.reset_params()
         actions = np.concatenate( [i[0] for i in self.history], axis = 0 )
         var = np.concatenate( [i[1] for i in self.history], axis = 0 )
-        print(diff)
         return actions, var, np.zeros(shape = (actions.shape[0],)) - diff
 
     def get_batches(self):
         inps = [[], [], []]
-        for i in range(self.batchsize):
+        print('sample data')
+        for i in tqdm.tqdm(range(self.batchsize)):
             data = self.get_data()
             for j in range(len(inps)):
                 inps[j].append(data[j])
@@ -171,18 +180,22 @@ class MechanismTrainer:
 
     def descent(self):
         inps = self.get_batches()
-        for i in tqdm.tqdm(range(10)):
+        for i in tqdm.tqdm(range(30)):
             loss = self.mechanism.training(*inps)
+            if loss<-0.1:
+                break
 
-        for i in range(10):
-            diff = self.run(1000, record = False)
+        self.store_params()
+        for i in range(20):
+            diff = self.run(100, record = False)
+        self.reset_params()
 
         return diff
 
 def main():
     np.random.seed(0)
     trainer = MechanismTrainer()
-    for i in tqdm.tqdm(range(400)):
+    for i in tqdm.tqdm(range(20)):
         diff = trainer.run(1000, record = False)
     for batch_num in range(10000):
         diff = trainer.descent()
