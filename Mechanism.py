@@ -1,7 +1,8 @@
 import theano
 import numpy as np
+import tqdm
 from theano import tensor as T
-from fun import Player, GameMaster
+from fun import Player, GameMaster, FakePlayer
 from PublicKnowledge import PublicKnowledge
 
 class MechanismLeaner:
@@ -49,7 +50,9 @@ class MechanismLeaner:
             last = 10
 
 #        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
-        predict = add_fc(x, last, self.player_num + 1, initb = np.array([0]*self.player_num + [0.5]))
+        predict = add_fc(x, last, self.player_num + 1, 
+                         initW=np.array([[0,0,0,1], [0,0,0,0],[0,0,0,0]]),
+                         initb = np.array([10,0,0,0]))
         bider = T.nnet.softmax( predict[:, :self.player_num] )
         price =predict[:, self.player_num:]
         self.forward = theano.function(inputs = [inp], outputs = T.concatenate([bider, price], axis = 1))
@@ -71,7 +74,7 @@ class MechanismLeaner:
         updates = []
         for i in self.params:
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.01)))
+            updates.append((i, i-grad_i*np.float32(0.001)))
 
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         return
@@ -81,8 +84,8 @@ class MechanismLeaner:
         sorted_action = []
         for i in action:
             labels.append(np.argsort(-i))
-            sorted_action.append(np.sort(-i))
-        return labels, sorted_action
+            sorted_action.append(-np.sort(-i))
+        return labels, np.array(sorted_action).astype('float32')
 
     def decide(self, action):
         self.last_action = action
@@ -95,7 +98,7 @@ class MechanismLeaner:
             b = np.random.random()
             for i, a in enumerate(p):
                 b-=a
-                if b>=1:
+                if b<=0:
                     return i
             return i
         bider = [sampling(i) for i in bider_]
@@ -107,10 +110,11 @@ class MechanismLeaner:
         return result
 
     def training(self, action, var, reward):
-        pass
         labels, sorted_action = self.handle(action)
-        var[:,0] = [list(a).index(b) for a, b in zip(labels, var[:,0])]
-        return self.backward(sorted_action, var, reward)
+        player_num = len(labels[0])
+        new_var = var.copy()
+        new_var[:,0] = [list(a).index(b) for a, b in zip(labels, var[:,0])]
+        return self.backward(sorted_action, new_var, reward)
 
 class MechanismTrainer:
     def __init__(self):
@@ -118,8 +122,8 @@ class MechanismTrainer:
         self.history = []
 
         n = len(PublicKnowledge)
-        self.players = [Player(i) for i in range(0, n)]
-        self.batchsize = 100
+        self.players = [Player(0)] + [FakePlayer(i) for i in range(1, n)]
+        self.batchsize = 10
         self.mechanism = MechanismLeaner(n)
 
     def store_params(self):
@@ -140,18 +144,19 @@ class MechanismTrainer:
             self.history.append([action, var])
 
         reward = [i.inform(result) for i in self.players] #train the policy of each player
-        diff = np.abs(valuation.reshape(-1) - action.reshape(-1)).mean()
+        diff = np.abs(valuation.reshape(-1) - action.transpose(1, 0).reshape(-1)).mean()
         return diff
 
 
     def get_data(self):
         self.store_params()
         self.history = []
-        for i in range(10):
+        for i in range(100):
             diff = self.run(100)
         self.reset_params()
         actions = np.concatenate( [i[0] for i in self.history], axis = 0 )
         var = np.concatenate( [i[1] for i in self.history], axis = 0 )
+        print(diff)
         return actions, var, np.zeros(shape = (actions.shape[0],)) - diff
 
     def get_batches(self):
@@ -166,9 +171,10 @@ class MechanismTrainer:
 
     def descent(self):
         inps = self.get_batches()
-        loss = self.mechanism.training(*inps)
+        for i in tqdm.tqdm(range(10)):
+            loss = self.mechanism.training(*inps)
 
-        for i in range(1):
+        for i in range(10):
             diff = self.run(1000, record = False)
 
         return diff
@@ -176,6 +182,8 @@ class MechanismTrainer:
 def main():
     np.random.seed(0)
     trainer = MechanismTrainer()
+    for i in tqdm.tqdm(range(400)):
+        diff = trainer.run(1000, record = False)
     for batch_num in range(10000):
         diff = trainer.descent()
         print('batch: {}, reward: {}'.format(batch_num, diff))

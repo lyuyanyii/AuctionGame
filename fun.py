@@ -7,7 +7,7 @@ class Policy:
     def __init__(self):
         self.params = []
         self.nonlinearity = lambda x: T.tanh(x)#lambda x:x*(x>0)
-        self.num_layers = 3
+        self.num_layers = 0
         self.sigma = 0.1
         self.build_network()
 
@@ -63,7 +63,7 @@ class Policy:
         updates = []
         for i in self.params:
             grad_i = T.grad(loss, i)
-            updates.append((i, i-grad_i*np.float32(0.001)))
+            updates.append((i, i-grad_i*np.float32(0.01)))
 
         self.backward = theano.function(inputs = [inp, var, reward], outputs = loss, updates = updates)
         print('finish network building')
@@ -130,15 +130,22 @@ class Player:
         if self.trainable:
             loss = self.policy.learning(reward)
             diff = np.abs(self.valuation.reshape(-1) - self.policy.last_var.reshape(-1)).mean()
-            print(self.idx, diff)
+            #print(self.idx, diff)
         return reward
 
 class FakePlayer(Player):
     def __init__(self, idx):
         self.idx = idx
         self.set_freeze() 
+        class FakePolicy():
+            def dump(self):
+                pass
+            def loads(self, a):
+                pass
+        self.policy = FakePolicy()
     def play(self, valuation):
         return valuation[:, 0]
+
 
 class Mechanism:
     """
